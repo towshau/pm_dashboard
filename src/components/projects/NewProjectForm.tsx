@@ -127,7 +127,7 @@ export function NewProjectForm({ onSuccess, onCancel }: NewProjectFormProps) {
         {generateError && <div className="text-red-600 text-[11px] mb-1">{generateError}</div>}
         {acceptanceCriteria && !editingCriteria ? (
           <div
-            className="w-full text-[13px] border border-[var(--border-light)] rounded-lg px-3 py-2 bg-white min-h-[60px] cursor-text"
+            className="w-full text-[13px] border border-[var(--border-light)] rounded-lg px-3 py-2 bg-white min-h-[60px] max-h-[200px] overflow-y-auto cursor-text"
             onClick={() => setEditingCriteria(true)}
           >
             {acceptanceCriteria.split('\n\n').map((section, i) => {

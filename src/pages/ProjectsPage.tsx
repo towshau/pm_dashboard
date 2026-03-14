@@ -52,7 +52,7 @@ export default function ProjectsPage() {
 
       {showNewProject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setShowNewProject(false)}>
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-xl shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <NewProjectForm onSuccess={handleNewProjectSuccess} onCancel={() => setShowNewProject(false)} />
           </div>
         </div>
