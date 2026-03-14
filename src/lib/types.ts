@@ -65,6 +65,7 @@ export interface Task {
   dash_id: string | null;
   title: string;
   description: string | null;
+  acceptance_criteria: string | null;
   owner_id: string | null;
   status: TaskStatus;
   priority: Priority;

@@ -35,6 +35,10 @@ export function NewTaskForm({ fixedProjectId, onSuccess, onCancel }: NewTaskForm
   const [status, setStatus] = useState<TaskStatus>('to_do');
   const [priority, setPriority] = useState<Priority>('medium');
   const [size, setSize] = useState<Size>('M');
+  const [description, setDescription] = useState('');
+  const [acceptanceCriteria, setAcceptanceCriteria] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const [dueDate, setDueDate] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +69,8 @@ export function NewTaskForm({ fixedProjectId, onSuccess, onCancel }: NewTaskForm
       sub_project_id: subProjectId || null,
       dash_id: null,
       title: title.trim(),
+      description: description.trim() || null,
+      acceptance_criteria: acceptanceCriteria.trim() || null,
       owner_id: ownerId || null,
       status,
       priority,
@@ -131,6 +137,60 @@ export function NewTaskForm({ fixedProjectId, onSuccess, onCancel }: NewTaskForm
       <div>
         <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-0.5">Assignee</label>
         <StaffPicker selectedId={ownerId} onSelect={setOwnerId} size="xs" />
+      </div>
+      <div>
+        <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-0.5">Description</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full text-[13px] border border-[var(--border-light)] rounded-lg px-2.5 py-1.5 resize-y min-h-[60px]"
+          placeholder="Describe the task…"
+          rows={3}
+        />
+      </div>
+      <div>
+        <div className="flex items-center justify-between mb-0.5">
+          <label className="text-[11px] font-medium text-[var(--text-secondary)]">Acceptance Criteria</label>
+          <button
+            type="button"
+            disabled={generating || !description.trim()}
+            onClick={async () => {
+              setGenerating(true);
+              setGenerateError(null);
+              try {
+                const res = await fetch('/api/generate-task-criteria', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ description: description.trim() }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error ?? 'Generation failed');
+                setAcceptanceCriteria(data.criteria ?? '');
+              } catch (err: unknown) {
+                setGenerateError(err instanceof Error ? err.message : 'Generation failed');
+              } finally {
+                setGenerating(false);
+              }
+            }}
+            className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {generating && (
+              <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            )}
+            {generating ? 'Generating…' : 'Generate'}
+          </button>
+        </div>
+        {generateError && <div className="text-red-600 text-[11px] mb-1">{generateError}</div>}
+        <textarea
+          value={acceptanceCriteria}
+          onChange={(e) => setAcceptanceCriteria(e.target.value)}
+          className="w-full text-[13px] border border-[var(--border-light)] rounded-lg px-2.5 py-1.5 resize-y min-h-[60px]"
+          placeholder="Click Generate or type manually…"
+          rows={4}
+        />
       </div>
       <div className="grid grid-cols-3 gap-2">
         <div>
