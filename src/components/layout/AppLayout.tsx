@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, useSearchParams } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 
@@ -22,9 +23,10 @@ export function AppLayout() {
     setSearchParams(next, { replace: true });
   };
 
-  const q = searchParams.get('q') ?? '';
+  const [localSearch, setLocalSearch] = useState(searchParams.get('q') ?? '');
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const onSearchChange = (value: string) => {
+  const syncToUrl = useCallback((value: string) => {
     const next = new URLSearchParams(searchParams);
     if (value.trim()) {
       next.set('q', value.trim());
@@ -32,7 +34,12 @@ export function AppLayout() {
       next.delete('q');
     }
     setSearchParams(next, { replace: true });
-  };
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    debounceRef.current = setTimeout(() => syncToUrl(localSearch), 250);
+    return () => clearTimeout(debounceRef.current);
+  }, [localSearch, syncToUrl]);
 
   return (
     <div className="flex w-full min-h-screen">
@@ -50,8 +57,8 @@ export function AppLayout() {
             <input
               type="search"
               placeholder="Search people, projects, tasks…"
-              value={q}
-              onChange={(e) => onSearchChange(e.target.value)}
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-[var(--border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 focus:bg-white placeholder:text-[#9ca3af] transition-colors"
               aria-label="Search"
             />
