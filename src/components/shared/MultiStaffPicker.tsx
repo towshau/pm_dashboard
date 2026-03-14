@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useStaff } from '../../hooks/useStaff';
 import { Avatar } from './Avatar';
 import { deriveInitials } from '../../lib/types';
@@ -12,21 +13,47 @@ interface MultiStaffPickerProps {
 export function MultiStaffPicker({ selectedIds, onToggle, mainOwnerId }: MultiStaffPickerProps) {
   const { staff } = useStaff();
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  const reposition = useCallback(() => {
+    if (!btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    const dropH = 280;
+    const spaceBelow = window.innerHeight - rect.bottom - 8;
+    const top = spaceBelow >= dropH ? rect.bottom + 4 : rect.top - dropH - 4;
+    const left = Math.max(8, rect.right - 224);
+    setPos({ top, left });
+  }, []);
 
   useEffect(() => {
+    if (!open) return;
+    reposition();
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (
+        btnRef.current?.contains(t) ||
+        panelRef.current?.contains(t)
+      ) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
+  }, [open, reposition]);
 
   const selected = staff.filter((s) => selectedIds.includes(s.id));
 
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
+        ref={btnRef}
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
         className="flex items-center gap-0.5 hover:opacity-80 transition-opacity"
@@ -52,9 +79,13 @@ export function MultiStaffPicker({ selectedIds, onToggle, mainOwnerId }: MultiSt
           <span className="rounded-full bg-gray-200 flex items-center justify-center text-gray-400 w-5 h-5 text-[8px]">+</span>
         )}
       </button>
-      {open && (
-        <div className="absolute z-50 top-full right-0 mt-1 w-56 bg-white border border-[var(--border-light)] rounded-lg shadow-lg max-h-52 overflow-y-auto">
-          <div className="px-3 py-1.5 text-[10px] text-[var(--text-tertiary)] font-medium uppercase tracking-wider border-b border-[var(--border-lighter)]">
+      {open && pos && createPortal(
+        <div
+          ref={panelRef}
+          className="fixed z-[9999] w-56 bg-white border border-[var(--border-light)] rounded-lg shadow-lg max-h-[280px] overflow-y-auto"
+          style={{ top: pos.top, left: pos.left }}
+        >
+          <div className="px-3 py-1.5 text-[10px] text-[var(--text-tertiary)] font-medium uppercase tracking-wider border-b border-[var(--border-lighter)] sticky top-0 bg-white">
             Toggle assignees
           </div>
           {staff.map((person) => {
@@ -77,8 +108,9 @@ export function MultiStaffPicker({ selectedIds, onToggle, mainOwnerId }: MultiSt
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
