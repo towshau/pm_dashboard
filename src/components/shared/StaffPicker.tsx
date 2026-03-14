@@ -43,7 +43,7 @@ export function StaffPicker({ selectedId, onSelect, size = 'sm' }: StaffPickerPr
         )}
       </button>
       {open && (
-        <div className="absolute z-50 top-full right-0 mt-1 w-52 bg-white border border-[var(--border-light)] rounded-lg shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-50 top-full left-0 mt-1 w-64 bg-white border border-[var(--border-light)] rounded-lg shadow-lg max-h-56 overflow-y-auto">
           {staff.map((person) => {
             const initials = deriveInitials(person.first_name, person.last_name);
             const isSelected = person.id === selectedId;
@@ -55,8 +55,8 @@ export function StaffPicker({ selectedId, onSelect, size = 'sm' }: StaffPickerPr
                 className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}
               >
                 <Avatar initials={initials} color={person.rgb_colour ?? '#2d4a6f'} size="xs" />
-                <span className="truncate">{person.first_name} {person.last_name ?? ''}</span>
-                {person.role && <span className="ml-auto text-[10px] text-[var(--text-tertiary)] truncate">{person.role}</span>}
+                <span className="flex-1 min-w-0">{person.first_name} {person.last_name ?? ''}</span>
+                {person.role && <span className="text-[10px] text-[var(--text-tertiary)] flex-shrink-0 ml-1">{person.role}</span>}
               </button>
             );
           })}

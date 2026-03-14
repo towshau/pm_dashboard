@@ -14,6 +14,10 @@ interface NewProjectFormProps {
 export function NewProjectForm({ onSuccess, onCancel }: NewProjectFormProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [acceptanceCriteria, setAcceptanceCriteria] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [editingCriteria, setEditingCriteria] = useState(false);
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [team, setTeam] = useState<Team>('Admin');
   const [startDate, setStartDate] = useState('');
@@ -33,6 +37,7 @@ export function NewProjectForm({ onSuccess, onCancel }: NewProjectFormProps) {
     const { error: err } = await supabase.from('pm_projects').insert({
       name: name.trim(),
       description: description.trim() || null,
+      acceptance_criteria: acceptanceCriteria.trim() || null,
       owner_id: ownerId || null,
       team,
       team_color: teamColor,
@@ -71,6 +76,92 @@ export function NewProjectForm({ onSuccess, onCancel }: NewProjectFormProps) {
           className="w-full text-[13px] border border-[var(--border-light)] rounded-lg px-3 py-2 min-h-[60px]"
           placeholder="Optional description"
         />
+      </div>
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-[11px] font-medium text-[var(--text-secondary)]">Acceptance Criteria</label>
+          <div className="flex items-center gap-1.5">
+            {acceptanceCriteria && !editingCriteria && (
+              <button
+                type="button"
+                onClick={() => setEditingCriteria(true)}
+                className="text-[10px] font-medium px-2 py-0.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-gray-100 transition-colors"
+              >
+                Edit
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={generating || !description.trim()}
+              onClick={async () => {
+                setGenerating(true);
+                setGenerateError(null);
+                try {
+                  const res = await fetch('/api/generate-task-criteria', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: description.trim() }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error ?? 'Generation failed');
+                  setAcceptanceCriteria(data.criteria ?? '');
+                  setEditingCriteria(false);
+                } catch (err: unknown) {
+                  setGenerateError(err instanceof Error ? err.message : 'Generation failed');
+                } finally {
+                  setGenerating(false);
+                }
+              }}
+              className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {generating && (
+                <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
+              {generating ? 'Generating…' : 'Generate'}
+            </button>
+          </div>
+        </div>
+        {generateError && <div className="text-red-600 text-[11px] mb-1">{generateError}</div>}
+        {acceptanceCriteria && !editingCriteria ? (
+          <div
+            className="w-full text-[13px] border border-[var(--border-light)] rounded-lg px-3 py-2 bg-white min-h-[60px] cursor-text"
+            onClick={() => setEditingCriteria(true)}
+          >
+            {acceptanceCriteria.split('\n\n').map((section, i) => {
+              const [heading, ...body] = section.split('\n');
+              const isHeading = body.length > 0 && !heading.startsWith('•');
+              return (
+                <div key={i} className={i > 0 ? 'mt-3' : ''}>
+                  {isHeading ? (
+                    <>
+                      <div className="font-semibold text-[var(--text-primary)] text-[12px] mb-0.5">{heading}</div>
+                      {body.map((line, j) => (
+                        <div key={j} className="text-[var(--text-secondary)] leading-relaxed">{line}</div>
+                      ))}
+                    </>
+                  ) : (
+                    section.split('\n').map((line, j) => (
+                      <div key={j} className="text-[var(--text-secondary)] leading-relaxed">{line}</div>
+                    ))
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <textarea
+            value={acceptanceCriteria}
+            onChange={(e) => setAcceptanceCriteria(e.target.value)}
+            onBlur={() => { if (acceptanceCriteria.trim()) setEditingCriteria(false); }}
+            className="w-full text-[13px] border border-[var(--border-light)] rounded-lg px-3 py-2 resize-y min-h-[60px]"
+            placeholder="Click Generate or type manually…"
+            rows={4}
+            autoFocus={editingCriteria}
+          />
+        )}
       </div>
       <div>
         <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">Owner</label>
