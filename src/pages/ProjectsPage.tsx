@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useProjectsWithTimeline } from '../hooks/useProjects';
 import { TeamBadge } from '../components/shared/TeamBadge';
@@ -11,25 +11,13 @@ export default function ProjectsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const teamsParam = searchParams.get('teams');
-  const q = searchParams.get('q') ?? '';
   const activeTeams = teamsParam ? teamsParam.split(',') : [];
   const { projects, loading, error, refetch } = useProjectsWithTimeline();
   const [showNewProject, setShowNewProject] = useState(false);
 
-  const filtered = useMemo(() => {
-    let list = activeTeams.length > 0
-      ? projects.filter((p) => activeTeams.includes(p.team))
-      : projects;
-    if (q.trim()) {
-      const lower = q.trim().toLowerCase();
-      list = list.filter((p) =>
-        p.name.toLowerCase().includes(lower) ||
-        (p.owner_name ?? '').toLowerCase().includes(lower) ||
-        p.team.toLowerCase().includes(lower)
-      );
-    }
-    return list;
-  }, [projects, activeTeams, q]);
+  const filtered = activeTeams.length > 0
+    ? projects.filter((p) => activeTeams.includes(p.team))
+    : projects;
 
   const handleOwnerChange = async (projectId: string, staffId: string) => {
     await supabase.from('pm_projects').update({ owner_id: staffId }).eq('id', projectId);

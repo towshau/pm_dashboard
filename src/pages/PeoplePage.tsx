@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { useStaff } from '../hooks/useStaff';
 import { useTaskOwnerIds } from '../hooks/useTaskOwnerIds';
 import { Avatar } from '../components/shared/Avatar';
@@ -107,22 +106,13 @@ function PersonCard({ person, hasTasks }: { person: StaffMember; hasTasks: boole
   );
 }
 
-function matchesSearch(person: StaffMember, q: string): boolean {
-  if (!q.trim()) return true;
-  const full = `${person.first_name} ${(person.last_name ?? '').trim()}`.toLowerCase();
-  return full.includes(q.trim().toLowerCase());
-}
-
 export default function PeoplePage() {
-  const [searchParams] = useSearchParams();
-  const q = searchParams.get('q') ?? '';
   const { staff, loading, error } = useStaff();
   const taskOwnerIds = useTaskOwnerIds();
 
   const gymGroups = useMemo(() => {
-    const filtered = q.trim() ? staff.filter((p) => matchesSearch(p, q)) : staff;
     const groups: Record<string, StaffMember[]> = { BRIDGE: [], BLIGH: [], COLLINS: [], HQ: [] };
-    for (const person of filtered) {
+    for (const person of staff) {
       const gym = person.home_gym?.toUpperCase() ?? 'BRIDGE';
       if (gym in groups) {
         groups[gym].push(person);
@@ -141,14 +131,13 @@ export default function PeoplePage() {
       });
     });
     return groups;
-  }, [staff, taskOwnerIds, q]);
+  }, [staff, taskOwnerIds]);
 
   return (
     <div className="min-h-full">
       <header className="px-7 py-5 border-b border-[var(--border-light)] bg-white">
         <h1 className="text-xl font-semibold text-[var(--text-primary)]">People</h1>
         <p className="text-sm text-[var(--text-secondary)] mt-1">
-          {q.trim() ? `${Object.values(gymGroups).reduce((n, g) => n + g.length, 0)} matching · ` : ''}
           {staff.length} active staff · ★ = has tasks · Click a person to see their tasks
         </p>
       </header>
