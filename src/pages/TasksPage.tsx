@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAllTasks } from '../hooks/useAllTasks';
 import { TaskRow } from '../components/dashboard/TaskRow';
@@ -5,13 +6,26 @@ import { TaskRow } from '../components/dashboard/TaskRow';
 export default function TasksPage() {
   const [searchParams] = useSearchParams();
   const teamsParam = searchParams.get('teams');
+  const q = searchParams.get('q') ?? '';
   const activeTeams = teamsParam ? teamsParam.split(',') : [];
   const teamFilter = activeTeams.length > 0 ? activeTeams[0] : null;
   const { tasks: allTasks, loading, error } = useAllTasks(teamFilter);
 
-  const tasks = activeTeams.length > 1
-    ? allTasks.filter((t) => t.project_team && activeTeams.includes(t.project_team))
-    : allTasks;
+  const tasks = useMemo(() => {
+    let list = activeTeams.length > 1
+      ? allTasks.filter((t) => t.project_team && activeTeams.includes(t.project_team))
+      : allTasks;
+    if (q.trim()) {
+      const lower = q.trim().toLowerCase();
+      list = list.filter((t) =>
+        t.title.toLowerCase().includes(lower) ||
+        (t.project_name ?? '').toLowerCase().includes(lower) ||
+        (t.owner_name ?? '').toLowerCase().includes(lower) ||
+        (t.sub_project_name ?? '').toLowerCase().includes(lower)
+      );
+    }
+    return list;
+  }, [allTasks, activeTeams, q]);
 
   return (
     <div className="min-h-full">
