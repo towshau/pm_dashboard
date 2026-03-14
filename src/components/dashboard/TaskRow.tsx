@@ -47,7 +47,11 @@ export function TaskRow({ task, onTaskUpdated }: { task: Task; onTaskUpdated?: (
 
   const toggleAssignee = useCallback(async (staffId: string) => {
     const isOwner = staffId === task.owner_id;
-    if (assigneeIds.includes(staffId) && !isOwner) {
+    if (assigneeIds.includes(staffId) && isOwner) {
+      await supabase.from('pm_tasks').update({ owner_id: null }).eq('id', task.id);
+      setAssigneeIds((prev) => prev.filter((id) => id !== staffId));
+      onTaskUpdated?.();
+    } else if (assigneeIds.includes(staffId) && !isOwner) {
       await supabase.from('pm_task_collaborators').delete().eq('task_id', task.id).eq('staff_id', staffId);
       setAssigneeIds((prev) => prev.filter((id) => id !== staffId));
     } else if (!assigneeIds.includes(staffId)) {
@@ -58,7 +62,7 @@ export function TaskRow({ task, onTaskUpdated }: { task: Task; onTaskUpdated?: (
       }
       setAssigneeIds((prev) => [...new Set([...prev, staffId])]);
     }
-  }, [task.id, task.owner_id, assigneeIds]);
+  }, [task.id, task.owner_id, assigneeIds, onTaskUpdated]);
 
   return (
     <div className="flex items-center py-2 px-4 border-t border-[var(--border-lighter)] gap-2 hover:bg-gray-50/80">
