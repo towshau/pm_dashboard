@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
+import { PortalDropdown } from './PortalDropdown';
 import type { TaskStatus } from '../../lib/types';
 
 const STATUS_ORDER: TaskStatus[] = ['to_do', 'in_progress', 'review', 'blocked', 'done'];
@@ -19,15 +20,8 @@ interface StatusBadgeProps {
 export function StatusBadge({ status, onChange }: StatusBadgeProps) {
   const s = statusStyles[status] ?? statusStyles.to_do;
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const close = useCallback(() => setOpen(false), []);
 
   if (!onChange) {
     return (
@@ -38,32 +32,31 @@ export function StatusBadge({ status, onChange }: StatusBadgeProps) {
   }
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative">
       <button
+        ref={btnRef}
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
         className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium whitespace-nowrap cursor-pointer hover:ring-1 hover:ring-gray-300 ${s.bg} ${s.text}`}
       >
         {s.label}
       </button>
-      {open && (
-        <div className="absolute z-50 top-full right-0 mt-1 w-28 bg-white border border-[var(--border-light)] rounded-lg shadow-lg overflow-hidden">
-          {STATUS_ORDER.map((st) => {
-            const style = statusStyles[st];
-            return (
-              <button
-                key={st}
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onChange(st); setOpen(false); }}
-                className={`flex items-center gap-1.5 w-full px-2.5 py-1.5 text-left text-[11px] hover:bg-gray-50 ${st === status ? 'bg-gray-50 font-medium' : ''}`}
-              >
-                <span className={`w-1.5 h-1.5 rounded-full ${style.bg.replace('50', '500')}`} style={{ backgroundColor: st === 'blocked' ? '#ef4444' : st === 'done' ? '#10b981' : st === 'in_progress' ? '#f59e0b' : '#3b82f6' }} />
-                {style.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <PortalDropdown open={open} onClose={close} anchorRef={btnRef} width={112}>
+        {STATUS_ORDER.map((st) => {
+          const style = statusStyles[st];
+          return (
+            <button
+              key={st}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onChange(st); setOpen(false); }}
+              className={`flex items-center gap-1.5 w-full px-2.5 py-1.5 text-left text-[11px] hover:bg-gray-50 ${st === status ? 'bg-gray-50 font-medium' : ''}`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: st === 'blocked' ? '#ef4444' : st === 'done' ? '#10b981' : st === 'in_progress' ? '#f59e0b' : '#3b82f6' }} />
+              {style.label}
+            </button>
+          );
+        })}
+      </PortalDropdown>
     </div>
   );
 }
